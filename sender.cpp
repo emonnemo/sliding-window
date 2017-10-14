@@ -15,7 +15,6 @@
 #include <iostream>
 #include <fstream>
 #include <thread>
-#include "socket_address.cpp"
 
 using namespace std;
 
@@ -25,18 +24,37 @@ int buffer_size;
 string destination_ip;
 int destination_port;
 char fr[9];
+char data[7];
 
 int error_arg_usage() {
 	cout << "Usage: ./send <filename> <windowsize> <buffersize> <destination_ip> <destination_port> \n";
 	exit(1);
 }
 
-void foo(bool* loop) {
-	try {
-		*loop = false;
-	} catch(int) {
-		perror("error threading");
+int min(int a, int b) {
+	return a > b ? b : a;
+}
+
+char calculate_checksum() {
+	char calculated_checksum = 0;
+	for (int i = 0; i < 8; i++) {
+		calculated_checksum += fr[i];
 	}
+	return calculated_checksum;
+}
+
+char check_checksum(char checksum) {
+	char calculated_checksum = 0;
+	for (int i = 0; i < 6; i ++) {
+		calculated_checksum += data[i];
+	}
+	return checksum == calculated_checksum;
+}
+
+uint32_t get_sequence_number() {
+	uint32_t sequence_number;
+	memcpy(&sequence_number, data + 1, sizeof(uint32_t));
+	return sequence_number;
 }
 
 // prototype
@@ -90,7 +108,7 @@ void serialize_frame(char data, uint32_t sequence_number) {
 	fr[5] = 0x2;
 	fr[6] = data;
 	fr[7] = 0x3;
-	fr[8] = 0x0; //TODO: checksum
+	fr[8] = calculate_checksum();
 }
 
 // function to send the file
@@ -98,8 +116,7 @@ void serialize_frame(char data, uint32_t sequence_number) {
 void send_file(string filename) {
 	// setting up socket connection
 	int sender_sock, receiver_sock, connected;
-	char send_data[buffer_size];
-	char data[7];
+	char send_buffer[buffer_size + 1];
 	unsigned int sin_size;
 	int void_pointer = 1;
 	// if((sender_sock = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
@@ -153,73 +170,121 @@ void send_file(string filename) {
 	if (file.is_open())
 		cout << "Opened file" << endl;
 	char ch;
+	bool flag = true;
+	bool stop = false;
+	int buffer_index = 0;
+	uint32_t sequence_number = 0;
+	uint32_t last_sequence_received = -1;
+	uint32_t min_window = 0;
+	uint32_t max_window = min_window + window_size;
+	uint32_t adverstised_window_size = window_size;
 	while (1) {
-		int buffer_index = 0;
-		uint32_t sequence_number = 0;
-		uint32_t last_sequence_received = 0;
-		uint32_t min_window = 0;
-		uint32_t max_window = min_window + window_size - 1;
-		while (file.get(send_data[buffer_index])) {
-			// cout << send_data[buffer_index];
-			++buffer_index;
-			// if the buffer is full
-			if (buffer_index >= buffer_size) {
-				// cout << "=\n----- buffer full -----\n";
-				// sending the data
-				for(int i = 0; i < buffer_size; i++) {
-					serialize_frame(send_data[i], sequence_number);
-					// if (send(connected, fr, 9, 0)) {
+		// while (file.get(send_buffer[buffer_index])) {
+		while (flag || !stop) {
+			if (buffer_index < buffer_size && flag) {
+				char ch;
+				if (file.get(ch)) {
+					send_buffer[buffer_index] = ch;
+					++buffer_index;
+					cout << "buffer ke " << buffer_index << " :" << ch << endl;
+				} else {
+					send_buffer[buffer_index] = EOF;
+					++buffer_index;
+					cout << "buffer ke " << buffer_index << " :" << (char) send_buffer[buffer_index-1] << endl;
+					flag = false;
+				}
+			}
+			if (buffer_index >= buffer_size || !flag) {
+				send_buffer[buffer_index] == '\0';
+				cout << "ada " << buffer_index << " di buffer\n";
+				cout << send_buffer << endl;
+				cout << "min_window :" << min_window << endl;
+				cout << "max_window :" << max_window << endl;
+				int number_frame_sent = 0;
+				for(int i = min_window % buffer_size; (i <= (max_window - 1) % buffer_size) && (i < buffer_index); i++) {
+					number_frame_sent++;
+					serialize_frame(send_buffer[i], sequence_number);
 					if (sendto(receiver_sock, fr, 9, 0, (sockaddr*)&receiver_addr, sizeof(receiver_addr))) {
-						cout << "---->";
+						cout << "data ke-" << i << " :";
 						cout << fr[6] << " -- seq number: " << sequence_number;
 						cout << endl;
 						++sequence_number;
 					}
-					// if (data[])
-
 				}
-				bool loop = true;
-				while (loop) {
+				int number_ack_received = 0;
+				while (true) {
+					if (number_ack_received == (number_frame_sent)) {
+						min_window = last_sequence_received + 1;
+						sequence_number = min_window;
+						max_window = min_window + min(window_size, adverstised_window_size);
+						max_window = min(max_window, buffer_index + min_window - (min_window % buffer_size));
+						break;
+					}
 					if (recvfrom(receiver_sock, data, sizeof(data), 0, (sockaddr *)&receiver_addr, &sin_size) >= 0) {
+						number_ack_received++;
 						if (strlen(data) > 0) {
-							cout << "Got ACK " << (uint32_t)(data[1]) << endl;
-							uint32_t next_sequence_number = (uint32_t) (data[1]);
-							if (next_sequence_number == min_window)
+							if (check_checksum(data[6])) {
+								cout << "Got ACK " << get_sequence_number() << endl;
+								uint32_t next_sequence_number = get_sequence_number();
+								adverstised_window_size = data[5];
 								last_sequence_received = next_sequence_number - 1;
+							} else {
+								cout << "Got ACK with wrong checksum" << endl;
+							}
 						} else {
 							break;
 						}
 					} else {
-						receiver_sock.open();
+						min_window = last_sequence_received + 1;
+						sequence_number = min_window;
+						max_window = min_window + min(adverstised_window_size, window_size);
+						max_window = min(max_window, buffer_index + min_window - (min_window % buffer_size));
 						break;
 					}
 				}
+				cout << "last_sequence_received :" << last_sequence_received << "\n";
 				// reset buffer
-				buffer_index = 0;
+				if ((last_sequence_received + 1 - buffer_size) % buffer_size == 0){
+					buffer_index = 0;
+					cout << "resetting buffer \n";
+					cout << "min_window :" << min_window << endl;
+					cout << "max_window :" << max_window << endl;
+					max_window = min_window + min(adverstised_window_size, window_size);
+				}
+				cout << "buffer_size :" << buffer_size << ", buffer_index :" << buffer_index << endl;
+				if (!flag && (last_sequence_received + 1 - buffer_index) % buffer_size == 0) {
+					cout << "finally stopped\n";
+					stop = true;
+				}
 			}
-			// sendto(sock,)
 		}
-		// send the remaining item in the buffer
-		for(int i = 0; i < buffer_index; i++) {
-			serialize_frame(send_data[i], sequence_number);
-			if (sendto(receiver_sock, fr, 9, 0, (sockaddr*)&receiver_addr, sizeof(receiver_addr))) {
-				cout << "---->";
-				cout << fr[6] << " -- seq number: " << sequence_number;
-				cout << endl;
-				++sequence_number;
-			}
-			// recv(sock, data, 7, 0);
-			// if (strlen(data) != 0) {
-			// 	cout << "Got ACK" << endl;
-			// }
-			// if (data[])
-
-		}
-		fr[0] = 'e';
-		fr[1] = 'x';
-		fr[2] = 'i';
-		fr[3] = 't';
-		sendto(receiver_sock, fr, 9, 0, (sockaddr*)&receiver_addr, sizeof(receiver_addr));
+		// // send the remaining item in the buffer
+		// for(int i = 0; i < buffer_index; i++) {
+		// 	serialize_frame(send_buffer[i], sequence_number);
+		// 	if (sendto(receiver_sock, fr, 9, 0, (sockaddr*)&receiver_addr, sizeof(receiver_addr))) {
+		// 		cout << "---->";
+		// 		cout << fr[6] << " -- seq number: " << sequence_number;
+		// 		cout << endl;
+		// 		++sequence_number;
+		// 	}
+		// }
+		// bool loop = true;
+		// while (loop) {
+		// 	if (recvfrom(receiver_sock, data, sizeof(data), 0, (sockaddr *)&receiver_addr, &sin_size) >= 0) {
+		// 		if (strlen(data) > 0) {
+		// 			cout << "Got ACK " << (uint32_t)(data[1]) << endl;
+		// 			uint32_t next_sequence_number = (uint32_t) (data[1]);
+		// 			if (next_sequence_number == min_window)
+		// 				last_sequence_received = next_sequence_number - 1;
+		// 		} else {
+		// 			break;
+		// 		}
+		// 	} else {
+		// 		break;
+		// 	}
+		// }
+		// serialize_frame(EOF, sequence_number);
+		// sendto(receiver_sock, fr, 9, 0, (sockaddr*)&receiver_addr, sizeof(receiver_addr));
 	}
 	close(sender_sock);
 }

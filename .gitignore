@@ -56,4 +56,4 @@ recv
 send
 
 # test file to send
-test.txt
+*.txt
