@@ -50,3 +50,10 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+# executable
+recv
+send
+
+# test file to send
+test.txt
