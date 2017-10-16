@@ -167,8 +167,26 @@ void send_file(string filename) {
 	// connected = accept(sock,(struct sockaddr *)&receiver_addr,&sin_size);
 	// reading files
 	ifstream file(filename.c_str());
-	if (file.is_open())
+	if (file.is_open()) {
 		cout << "File opened successfully" << endl;
+	} else {
+		cout << "File cannot be opened, exiting" << endl;
+		exit(1);
+	}
+	// opening log file
+	fstream log;
+	log.open("log/send_log.log", std::fstream::out | std::fstream::app);
+	if (log.is_open()) {
+		cout << "Log file opened successfully" << endl;
+	} else {
+		cout << "Log file cannot be opened, exiting" << endl;
+		exit(1);
+	}
+	log << "---------------------------------------------------" << endl;
+	log << "Trying to send file \"" << filename << "\" to " << destination_ip
+		<< ":" << destination_port << endl;
+	cout << "Trying to send file \"" << filename << "\" to " << destination_ip
+		<< ":" << destination_port << endl;
 	char ch;
 	bool flag = true;
 	bool stop = false;
@@ -181,6 +199,7 @@ void send_file(string filename) {
 	uint32_t adverstised_window_size = window_size;
 	uint32_t buffer_times = 0;
 	bool check_buffer = true;
+	bool finish_sent = false;
 	while (1) {
 		// while (file.get(send_buffer[buffer_index])) {
 		while (flag || !stop) {
@@ -215,10 +234,21 @@ void send_file(string filename) {
 						break;
 					}
 					serialize_frame(send_buffer[i], sequence_number);
+					// if end of file
+					if (send_buffer[i] == EOF) {
+						// if it is really end of file not just 0x00 data
+						if (file.peek() == -1) {
+							// end of file
+							fr[0] = 0x00; // differs EOF and 0x00 data
+							fr[8] = fr[8] + 0x00 - 0x01;
+							finish_sent = send_buffer[(max_window - 1) % buffer_size] == EOF;
+							// all data is sent if the last in the buffer is the EOF
+						}
+					}
 					if (sendto(receiver_sock, fr, 9, 0, (sockaddr*)&receiver_addr, sizeof(receiver_addr))) {
-						cout << "Send data from buffer with index " << i << " with data = ";
-						cout << fr[6] << "(sequence number = " << sequence_number;
-						cout << ")" << endl;
+						log << "Send data from buffer with index " << i << " with data = ";
+						log << fr[6] << "(sequence number = " << sequence_number;
+						log << ")" << endl;
 						++sequence_number;
 					}
 				}
@@ -235,18 +265,27 @@ void send_file(string filename) {
 						number_ack_received++;
 						if (strlen(data) > 0) {
 							if (check_checksum(data[6])) {
-								cout << "Got ACK " << get_sequence_number() << endl;
+								log << "Got ACK " << get_sequence_number() << endl;
 								next_sequence_number = get_sequence_number();
 								adverstised_window_size = data[5];
 								last_sequence_received = next_sequence_number - 1;
 								if (!check_buffer) break;
 							} else {
-								cout << "Got ACK with wrong checksum" << endl;
+								log << "Got ACK with wrong checksum" << endl;
 							}
 						} else {
 							break;
 						}
 					} else {
+						if (finish_sent) {
+							log << "File \"" << filename << "\" fully sent to "
+								<< destination_ip << ":" << destination_port
+								<< " but didn't receive last ACK" << endl;
+							cout << "File \"" << filename << "\" fully sent to "
+								<< destination_ip << ":" << destination_port
+								<< " but didn't receive last ACK" << endl;
+							exit(1);
+						}
 						min_window = last_sequence_received + 1;
 						sequence_number = min_window;
 						max_window = min_window + min(adverstised_window_size, window_size);
@@ -267,7 +306,10 @@ void send_file(string filename) {
 					}
 					// cout << "buffer_size :" << buffer_size << ", buffer_index :" << buffer_index << endl;
 					if (!flag && (last_sequence_received + 1 - buffer_index) % buffer_size == 0) {
-						cout << "File successfully sent\n";
+						log << "File \"" << filename << "\" successfully sent to "
+							<< destination_ip << ":" << destination_port << endl;
+						cout << "File \"" << filename << "\" successfully sent to "
+							<< destination_ip << ":" << destination_port << endl;
 						stop = true;
 						exit(1);
 					}
