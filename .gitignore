@@ -52,8 +52,8 @@ Mkfile.old
 dkms.conf
 
 # executable
-recv
-send
+recvfile
+sendfile
 
 # test file to send
 *.txt

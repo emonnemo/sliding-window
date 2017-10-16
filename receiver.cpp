@@ -109,6 +109,7 @@ int main(int argc, char** argv)
 	char receive_buffer[buffer_size];
 	uint32_t next_sequence_number = 0;
 	uint32_t last_frame_received = -1;
+	uint32_t largest_frame = last_frame_received + window_size;
 	cout << "\n";
 	ofstream file(filename.c_str());
 	int buffer_index = 0;
@@ -150,6 +151,15 @@ int main(int argc, char** argv)
 								file << receive_buffer[i];
 							}
 							buffer_index = 0;
+						}
+						largest_frame++;
+					} else { // get not the next expected frame
+						if (sequence_number <= largest_frame) {
+							if (sequence_number - last_frame_received + buffer_index < buffer_size) {
+								receive_buffer[sequence_number - last_frame_received + buffer_index] = receive[6];
+							}
+						} else {
+							cout << "rejected" << endl;
 						}
 					}
 					cout << "sequence_number :" << sequence_number << endl;
