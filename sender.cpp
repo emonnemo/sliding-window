@@ -15,6 +15,9 @@
 #include <iostream>
 #include <fstream>
 #include <thread>
+#include <iomanip>
+#include "ios_flag_saver.hpp"
+
 
 using namespace std;
 
@@ -25,6 +28,7 @@ string destination_ip;
 int destination_port;
 char fr[9];
 char data[7];
+fstream log;
 
 int error_arg_usage() {
 	cout << "Usage: ./send <filename> <windowsize> <buffersize> <destination_ip> <destination_port> \n";
@@ -55,6 +59,11 @@ uint32_t get_sequence_number() {
 	uint32_t sequence_number;
 	memcpy(&sequence_number, data + 1, sizeof(uint32_t));
 	return sequence_number;
+}
+
+void print_hex(char c) {
+	IosFlagSaver iosfs(log);
+	log << "0x" << hex << setw(2) << setfill('0') << static_cast<int>(c & 0xFF);
 }
 
 // prototype
@@ -174,7 +183,6 @@ void send_file(string filename) {
 		exit(1);
 	}
 	// opening log file
-	fstream log;
 	log.open("log/send_log.log", std::fstream::out | std::fstream::app);
 	if (log.is_open()) {
 		cout << "Log file opened successfully" << endl;
@@ -247,7 +255,8 @@ void send_file(string filename) {
 					}
 					if (sendto(receiver_sock, fr, 9, 0, (sockaddr*)&receiver_addr, sizeof(receiver_addr))) {
 						log << "Send data from buffer with index " << i << " with data = ";
-						log << fr[6] << "(sequence number = " << sequence_number;
+						print_hex(fr[6]);
+						log << "(sequence number = " << sequence_number;
 						log << ")" << endl;
 						++sequence_number;
 					}

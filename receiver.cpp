@@ -11,12 +11,15 @@
 #include <errno.h>
 #include <iostream>
 #include <fstream>
+#include <iomanip>
+#include "ios_flag_saver.hpp"
 
 using namespace std;
 
 // global variables
 char ack[7];
 char receive[9];
+fstream log;
 
 int error_arg_usage() {
 	cout << "Usage: ./recv <filename> <window_size> <buffer_size> <port> \n";
@@ -47,6 +50,11 @@ uint32_t get_sequence_number() {
 	uint32_t sequence_number;
 	memcpy(&sequence_number, receive + 1, sizeof(uint32_t));
 	return sequence_number;
+}
+
+void print_hex(char c) {
+	IosFlagSaver iosfs(log);
+	log << "0x" << hex << setw(2) << setfill('0') << static_cast<int>(c & 0xFF);
 }
 
 // prototype
@@ -118,7 +126,6 @@ int main(int argc, char** argv)
 		exit(1);
 	}
 	// opening log file
-	fstream log;
 	log.open("log/rcv_log.log", std::fstream::out | std::fstream::app);
 	if (log.is_open()) {
 		cout << "Log file opened successfully" << endl;
@@ -173,24 +180,28 @@ int main(int argc, char** argv)
 							buffer_index = 0;
 						}
 						largest_frame++;
-						log << "Frame " << i << " with data -" << receive[6]
-							<< "- received";
+						log << "Frame " << i << " with data -";
+						print_hex(receive[6]);
+						log	<< "- received";
 						// printf("Frame %d data -%c- received",i,receive[6]);
 					} else { // get not the next expected frame
 						if (sequence_number <= largest_frame) {
 							if (sequence_number <= last_frame_received) {
-								log << "Frame " << i << " with data -" << receive[6]
-									<< "- rejected";
+								log << "Frame " << i << " with data -";
+								print_hex(receive[6]);
+								log	<< "- rejected";
 								// printf("Frame %d data -%c- rejected",i,receive[6]);
 							} else if (sequence_number - last_frame_received + buffer_index < buffer_size) {
 								receive_buffer[sequence_number - last_frame_received + buffer_index] = receive[6];
-								log << "Frame " << i << " with data -" << receive[6]
-									<< "- received";
+								log << "Frame " << i << " with data -";
+								print_hex(receive[6]);
+								log	<< "- received";
 								// printf("Frame %d data -%c- received",i,receive[6]);
 							}
 						} else {
-							log << "Frame " << i << " with data -" << receive[6]
-								<< "- rejected";
+							log << "Frame " << i << " with data -";
+							print_hex(receive[6]);
+							log	<< "- rejected";
 							// printf("Frame %d data -%c- rejected",i,receive[6]);
 						}
 					}
@@ -203,8 +214,10 @@ int main(int argc, char** argv)
 				} else { // wrong checksum, error in sending
 					// printf("Frame %d data -%c- wrong checksum\n",i,receive[6]);
 					uint32_t sequence_number = get_sequence_number();
-					log << "Frame " << i << " with data -" << receive[6]
-						<< "- rejected because of having wrong checksum";
+					log << "Frame " << i << " with data -";
+					print_hex(receive[6]);
+					log	<< "- rejected";
+					log << " because of having wrong checksum";
 					log << "(sequence_number = " << sequence_number << ")" << endl;
 					char advertised_window_size = min(window_size, buffer_size - buffer_index);
 					serialize_ack(last_frame_received + 1, advertised_window_size);
