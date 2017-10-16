@@ -92,7 +92,6 @@ int main(int argc, char** argv)
 		perror("Socket not created");
 		exit(1);
 	}
-	printf("Socket created");
 	server_addr.sin_family=AF_INET;
 	server_addr.sin_port=htons(port);
 	server_addr.sin_addr=*((struct in_addr *)host->h_addr);
@@ -110,7 +109,7 @@ int main(int argc, char** argv)
 	uint32_t next_sequence_number = 0;
 	uint32_t last_frame_received = -1;
 	uint32_t largest_frame = last_frame_received + window_size;
-	cout << "\n";
+	printf("Ready to accept file from sender\n");
 	ofstream file(filename.c_str());
 	int buffer_index = 0;
 	while(1) {
@@ -129,7 +128,7 @@ int main(int argc, char** argv)
 			for (int i = 0; i < buffer_index; i++) {
 				file << receive_buffer[i];
 			}
-			cout << "exited\n";
+			cout << "File successfully received\n";
 			close(sock);
 			break;
 		}
@@ -153,18 +152,20 @@ int main(int argc, char** argv)
 							buffer_index = 0;
 						}
 						largest_frame++;
-						printf("Frame %d data -%c- received\n",i,receive[6]);
+						printf("Frame %d data -%c- received",i,receive[6]);
 					} else { // get not the next expected frame
 						if (sequence_number <= largest_frame) {
-							if (sequence_number - last_frame_received + buffer_index < buffer_size) {
+							if (sequence_number <= last_frame_received) {
+								printf("Frame %d data -%c- rejected",i,receive[6]);
+							} else if (sequence_number - last_frame_received + buffer_index < buffer_size) {
 								receive_buffer[sequence_number - last_frame_received + buffer_index] = receive[6];
-								printf("Frame %d data -%c- received\n",i,receive[6]);
+								printf("Frame %d data -%c- received",i,receive[6]);
 							}
 						} else {
-							printf("Frame %d data -%c- rejected\n",i,receive[6]);
+							printf("Frame %d data -%c- rejected",i,receive[6]);
 						}
 					}
-					cout << "sequence_number :" << sequence_number << endl;
+					cout << "(sequence_number = " << sequence_number << ")" << endl;
 					char advertised_window_size = min(window_size, buffer_size - buffer_index);
 					serialize_ack(next_sequence_number, advertised_window_size);
 					sendto(sock, ack, 7, 0, (sockaddr*)&sender_addr, sizeof(sender_addr));

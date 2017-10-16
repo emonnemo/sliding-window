@@ -168,16 +168,19 @@ void send_file(string filename) {
 	// reading files
 	ifstream file(filename.c_str());
 	if (file.is_open())
-		cout << "Opened file" << endl;
+		cout << "File opened successfully" << endl;
 	char ch;
 	bool flag = true;
 	bool stop = false;
 	int buffer_index = 0;
 	uint32_t sequence_number = 0;
+	uint32_t next_sequence_number = 0;
 	uint32_t last_sequence_received = -1;
 	uint32_t min_window = 0;
 	uint32_t max_window = min_window + window_size;
 	uint32_t adverstised_window_size = window_size;
+	uint32_t buffer_times = 0;
+	bool check_buffer = true;
 	while (1) {
 		// while (file.get(send_buffer[buffer_index])) {
 		while (flag || !stop) {
@@ -186,28 +189,36 @@ void send_file(string filename) {
 				if (file.get(ch)) {
 					send_buffer[buffer_index] = ch;
 					++buffer_index;
-					cout << "buffer ke " << buffer_index << " :" << ch << endl;
+					// cout << "buffer ke " << buffer_index << " :" << ch << endl;
 				} else {
 					send_buffer[buffer_index] = EOF;
 					++buffer_index;
-					cout << "buffer ke " << buffer_index << " :" << (char) send_buffer[buffer_index-1] << endl;
+					// cout << "buffer ke " << buffer_index << " :" << (char) send_buffer[buffer_index-1] << endl;
 					flag = false;
 				}
 			}
 			if (buffer_index >= buffer_size || !flag) {
 				send_buffer[buffer_index] == '\0';
-				cout << "ada " << buffer_index << " di buffer\n";
-				cout << send_buffer << endl;
-				cout << "min_window :" << min_window << endl;
-				cout << "max_window :" << max_window << endl;
+				// cout << "ada " << buffer_index << " di buffer\n";
+				// cout << send_buffer << endl;
+				// cout << "min_window :" << min_window << endl;
+				// cout << "max_window :" << max_window << endl;
 				int number_frame_sent = 0;
 				for(int i = min_window % buffer_size; (i <= (max_window - 1) % buffer_size) && (i < buffer_index); i++) {
 					number_frame_sent++;
+					if (next_sequence_number / buffer_size == buffer_times) {
+						// cout << "---- true buffer -----" << endl;
+						check_buffer =  true;
+					} else {
+						// cout << "---- wrong buffer -----" << endl;
+						check_buffer = false;
+						break;
+					}
 					serialize_frame(send_buffer[i], sequence_number);
 					if (sendto(receiver_sock, fr, 9, 0, (sockaddr*)&receiver_addr, sizeof(receiver_addr))) {
-						cout << "data ke-" << i << " :";
-						cout << fr[6] << " -- seq number: " << sequence_number;
-						cout << endl;
+						cout << "Send data from buffer with index " << i << " with data = ";
+						cout << fr[6] << "(sequence number = " << sequence_number;
+						cout << ")" << endl;
 						++sequence_number;
 					}
 				}
@@ -225,9 +236,10 @@ void send_file(string filename) {
 						if (strlen(data) > 0) {
 							if (check_checksum(data[6])) {
 								cout << "Got ACK " << get_sequence_number() << endl;
-								uint32_t next_sequence_number = get_sequence_number();
+								next_sequence_number = get_sequence_number();
 								adverstised_window_size = data[5];
 								last_sequence_received = next_sequence_number - 1;
+								if (!check_buffer) break;
 							} else {
 								cout << "Got ACK with wrong checksum" << endl;
 							}
@@ -242,19 +254,26 @@ void send_file(string filename) {
 						break;
 					}
 				}
-				cout << "last_sequence_received :" << last_sequence_received << "\n";
-				// reset buffer
-				if ((last_sequence_received + 1 - buffer_size) % buffer_size == 0){
+				if (check_buffer) {
+					// cout << "last_sequence_received :" << last_sequence_received << "\n";
+					// reset buffer
+					if ((last_sequence_received + 1 - buffer_size) % buffer_size == 0){
+						buffer_index = 0;
+						buffer_times++;
+						// cout << "resetting buffer \n";
+						// cout << "min_window :" << min_window << endl;
+						// cout << "max_window :" << max_window << endl;
+						max_window = min_window + min(adverstised_window_size, window_size);
+					}
+					// cout << "buffer_size :" << buffer_size << ", buffer_index :" << buffer_index << endl;
+					if (!flag && (last_sequence_received + 1 - buffer_index) % buffer_size == 0) {
+						cout << "File successfully sent\n";
+						stop = true;
+						exit(1);
+					}
+				} else {
 					buffer_index = 0;
-					cout << "resetting buffer \n";
-					cout << "min_window :" << min_window << endl;
-					cout << "max_window :" << max_window << endl;
-					max_window = min_window + min(adverstised_window_size, window_size);
-				}
-				cout << "buffer_size :" << buffer_size << ", buffer_index :" << buffer_index << endl;
-				if (!flag && (last_sequence_received + 1 - buffer_index) % buffer_size == 0) {
-					cout << "finally stopped\n";
-					stop = true;
+					buffer_times++;
 				}
 			}
 		}
