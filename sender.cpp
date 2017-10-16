@@ -36,7 +36,6 @@ int min(int a, int b) {
 }
 
 char calculate_checksum() {
-	if (fr[6] == 'a' || fr[6] == 'b') return 0;
 	char calculated_checksum = 0;
 	for (int i = 0; i < 8; i++) {
 		calculated_checksum += fr[i];
