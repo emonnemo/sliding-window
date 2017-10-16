@@ -198,6 +198,8 @@ int main(int argc, char** argv)
 					char advertised_window_size = min(window_size, buffer_size - buffer_index);
 					serialize_ack(next_sequence_number, advertised_window_size);
 					sendto(sock, ack, 7, 0, (sockaddr*)&sender_addr, sizeof(sender_addr));
+					log << "Sent ACK with next expected sequence number = " << next_sequence_number
+						<< endl;
 				} else { // wrong checksum, error in sending
 					// printf("Frame %d data -%c- wrong checksum\n",i,receive[6]);
 					uint32_t sequence_number = get_sequence_number();
@@ -207,6 +209,8 @@ int main(int argc, char** argv)
 					char advertised_window_size = min(window_size, buffer_size - buffer_index);
 					serialize_ack(last_frame_received + 1, advertised_window_size);
 					sendto(sock, ack, 7, 0, (sockaddr*)&sender_addr, sizeof(sender_addr));
+					log << "Sent ACK with next expected sequence number = " << next_sequence_number
+						<< endl;
 				}
 				// send(0,receive,strlen(receive),0);
 			}
