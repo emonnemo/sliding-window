@@ -153,17 +153,18 @@ int main(int argc, char** argv)
 							buffer_index = 0;
 						}
 						largest_frame++;
+						printf("Frame %d data -%c- received\n",i,receive[6]);
 					} else { // get not the next expected frame
 						if (sequence_number <= largest_frame) {
 							if (sequence_number - last_frame_received + buffer_index < buffer_size) {
 								receive_buffer[sequence_number - last_frame_received + buffer_index] = receive[6];
+								printf("Frame %d data -%c- received\n",i,receive[6]);
 							}
 						} else {
-							cout << "rejected" << endl;
+							printf("Frame %d data -%c- rejected\n",i,receive[6]);
 						}
 					}
 					cout << "sequence_number :" << sequence_number << endl;
-					printf("Frame %d data -%c- received\n",i,receive[6]);
 					char advertised_window_size = min(window_size, buffer_size - buffer_index);
 					serialize_ack(next_sequence_number, advertised_window_size);
 					sendto(sock, ack, 7, 0, (sockaddr*)&sender_addr, sizeof(sender_addr));

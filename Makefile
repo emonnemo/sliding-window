@@ -1,11 +1,11 @@
 CXXFLAGS = -std=c++11
 
-all: send recv
+all: sendfile recvfile
 
-send:
+sendfile:
 	g++ -o sendfile sender.cpp -std=c++11
 
-recv:
+recvfile:
 	g++ -o recvfile receiver.cpp -std=c++11
 
 clean:
