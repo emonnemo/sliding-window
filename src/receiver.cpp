@@ -148,7 +148,7 @@ int main(int argc, char** argv)
 		// bytes_received=recv(sock,receive,9,0);
 		receive[bytes_received]='\0';
 		if(receive[0] == 0x00 && check_checksum(receive[8])) {
-			char advertised_window_size = min(window_size, buffer_size - buffer_index);
+			char advertised_window_size = min(127, min(window_size, buffer_size - buffer_index));
 			serialize_ack(get_sequence_number() + 1, advertised_window_size);
 			sendto(sock, ack, 7, 0, (sockaddr*)&sender_addr, sizeof(sender_addr));
 			// flush the buffer to output file
@@ -206,7 +206,7 @@ int main(int argc, char** argv)
 						}
 					}
 					log << "(sequence_number = " << sequence_number << ")" << endl;
-					char advertised_window_size = min(window_size, buffer_size - buffer_index);
+					char advertised_window_size = min(127, min(window_size, buffer_size - buffer_index));
 					serialize_ack(next_sequence_number, advertised_window_size);
 					sendto(sock, ack, 7, 0, (sockaddr*)&sender_addr, sizeof(sender_addr));
 					log << "Sent ACK with next expected sequence number = " << next_sequence_number
@@ -219,7 +219,7 @@ int main(int argc, char** argv)
 					log	<< "- rejected";
 					log << " because of having wrong checksum";
 					log << "(sequence_number = " << sequence_number << ")" << endl;
-					char advertised_window_size = min(window_size, buffer_size - buffer_index);
+					char advertised_window_size = min(127, min(window_size, buffer_size - buffer_index));
 					serialize_ack(last_frame_received + 1, advertised_window_size);
 					sendto(sock, ack, 7, 0, (sockaddr*)&sender_addr, sizeof(sender_addr));
 					log << "Sent ACK with next expected sequence number = " << next_sequence_number

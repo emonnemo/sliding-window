@@ -142,7 +142,7 @@ void send_file(string filename) {
 	}
 	struct timeval tv;
 	tv.tv_sec = 0;
-	tv.tv_usec = 100000;
+	tv.tv_usec = 500000;
 	if (setsockopt(receiver_sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv,sizeof(tv)) < 0) {
 	    perror("Error");
 	}
@@ -291,11 +291,12 @@ void send_file(string filename) {
 								log << "Got ACK " << get_sequence_number() << endl;
 								accepted_once = true;
 								// cout << get_sequence_number() << " - " << next_sequence_number << endl;
-								if (next_sequence_number < get_sequence_number())
+								if (next_sequence_number < get_sequence_number()) {
 									next_sequence_number = get_sequence_number();
-								adverstised_window_size = data[5];
-								last_sequence_received = next_sequence_number - 1;
-								if (!check_buffer) break;
+									adverstised_window_size = data[5];
+									last_sequence_received = next_sequence_number - 1;
+									if (!check_buffer) break;
+								}
 							} else {
 								log << "Got ACK with wrong checksum" << endl;
 							}
