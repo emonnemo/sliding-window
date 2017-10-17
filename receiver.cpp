@@ -234,7 +234,6 @@ int main(int argc, char** argv)
 		}
 	}
 	file.close();
-	close(sock);
 	return(0);
 }
 

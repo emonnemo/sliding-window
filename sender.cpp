@@ -141,8 +141,8 @@ void send_file(string filename) {
 		exit(1);
 	}
 	struct timeval tv;
-	tv.tv_sec = 1;
-	tv.tv_usec = 0;
+	tv.tv_sec = 0;
+	tv.tv_usec = 100000;
 	if (setsockopt(receiver_sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv,sizeof(tv)) < 0) {
 	    perror("Error");
 	}
@@ -252,16 +252,27 @@ void send_file(string filename) {
 							// end of file
 							fr[0] = 0x00; // differs EOF and 0x00 data
 							fr[8] = fr[8] + 0x00 - 0x01;
-							finish_sent = send_buffer[(max_window - 1) % buffer_size] == EOF;
+							// if the remaining item is EOF
+							if (min_window % buffer_size == i) {
+								finish_sent = send_buffer[(max_window - 1) % buffer_size] == EOF;
+								if (sendto(receiver_sock, fr, 9, 0, (sockaddr*)&receiver_addr, sizeof(receiver_addr))) {
+									log << "Send data from buffer with index " << i << " with data = ";
+									print_hex(fr[6]);
+									log << "(sequence number = " << sequence_number;
+									log << ")" << endl;
+									++sequence_number;
+								}
+							}
 							// all data is sent if the last in the buffer is the EOF
 						}
-					}
-					if (sendto(receiver_sock, fr, 9, 0, (sockaddr*)&receiver_addr, sizeof(receiver_addr))) {
-						log << "Send data from buffer with index " << i << " with data = ";
-						print_hex(fr[6]);
-						log << "(sequence number = " << sequence_number;
-						log << ")" << endl;
-						++sequence_number;
+					} else {
+						if (sendto(receiver_sock, fr, 9, 0, (sockaddr*)&receiver_addr, sizeof(receiver_addr))) {
+							log << "Send data from buffer with index " << i << " with data = ";
+							print_hex(fr[6]);
+							log << "(sequence number = " << sequence_number;
+							log << ")" << endl;
+							++sequence_number;
+						}
 					}
 				}
 				int number_ack_received = 0;
