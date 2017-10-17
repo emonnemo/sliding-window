@@ -208,6 +208,8 @@ void send_file(string filename) {
 	uint32_t buffer_times = 0;
 	bool check_buffer = true;
 	bool finish_sent = false;
+	bool timeout = true;
+	bool accepted_once = false;
 	while (1) {
 		// while (file.get(send_buffer[buffer_index])) {
 		while (flag || !stop) {
@@ -233,6 +235,7 @@ void send_file(string filename) {
 				int number_frame_sent = 0;
 				for(int i = min_window % buffer_size; (i <= (max_window - 1) % buffer_size) && (i < buffer_index); i++) {
 					number_frame_sent++;
+					// cout << next_sequence_number << " " << buffer_size << " " << buffer_times << endl;
 					if (next_sequence_number / buffer_size == buffer_times) {
 						// cout << "---- true buffer -----" << endl;
 						check_buffer =  true;
@@ -275,6 +278,7 @@ void send_file(string filename) {
 						if (strlen(data) > 0) {
 							if (check_checksum(data[6])) {
 								log << "Got ACK " << get_sequence_number() << endl;
+								accepted_once = true;
 								next_sequence_number = get_sequence_number();
 								adverstised_window_size = data[5];
 								last_sequence_received = next_sequence_number - 1;
@@ -299,15 +303,19 @@ void send_file(string filename) {
 						sequence_number = min_window;
 						max_window = min_window + min(adverstised_window_size, window_size);
 						max_window = min(max_window, buffer_index + min_window - (min_window % buffer_size));
+						// cout << "ack timeout" << endl;
+						timeout = true;
 						break;
 					}
 				}
 				if (check_buffer) {
 					// cout << "last_sequence_received :" << last_sequence_received << "\n";
 					// reset buffer
-					if ((last_sequence_received + 1 - buffer_size) % buffer_size == 0){
+					if ((last_sequence_received + 1) % buffer_size == 0 && accepted_once){
 						buffer_index = 0;
 						buffer_times++;
+						accepted_once = false;
+						// cout << "add 1" << endl;
 						// cout << "resetting buffer \n";
 						// cout << "min_window :" << min_window << endl;
 						// cout << "max_window :" << max_window << endl;
@@ -323,8 +331,12 @@ void send_file(string filename) {
 						exit(1);
 					}
 				} else {
-					buffer_index = 0;
-					buffer_times++;
+					if (!timeout) {
+						buffer_index = 0;
+						buffer_times++;
+						accepted_once = false;
+					}
+					// cout << "add 2" << endl;
 				}
 			}
 		}
