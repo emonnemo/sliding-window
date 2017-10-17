@@ -95,8 +95,8 @@ int main(int argc, char** argv)
 		cout << "Error at argument number " << argNumber << endl;
 	}
 
-	host = gethostbyname("127.0.0.1");
-	if ((sock = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
+	host = gethostbyname("0.0.0.0");
+	if ((sock = socket(AF_INET, SOCK_DGRAM, INADDR_ANY)) == -1) {
 		perror("Socket not created");
 		exit(1);
 	}
