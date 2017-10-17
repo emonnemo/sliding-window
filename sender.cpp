@@ -279,7 +279,9 @@ void send_file(string filename) {
 							if (check_checksum(data[6])) {
 								log << "Got ACK " << get_sequence_number() << endl;
 								accepted_once = true;
-								next_sequence_number = get_sequence_number();
+								// cout << get_sequence_number() << " - " << next_sequence_number << endl;
+								if (next_sequence_number < get_sequence_number())
+									next_sequence_number = get_sequence_number();
 								adverstised_window_size = data[5];
 								last_sequence_received = next_sequence_number - 1;
 								if (!check_buffer) break;
