@@ -41,10 +41,11 @@ Program receiver dijalankan dengan cara memasukkan 4 buah argumen tambahan, yait
 
 ### Cara Kerja Sliding Window
 1. Pertama-tama, file eksternal yang ingin dikirim dimuat terlebih dahulu ke buffer yang ada pada program sender kemudian dibungkus menjadi frame sebesar window size (SWS) yang dimasukkan sesuai dengan keinginan user dari argumen program.
-2. Setelah itu, frame yang sudah dibuat dikirimkan saat menjalankan program (dengan memberi argumen).
+2. Setelah itu, frame yang sudah dibuat dikirimkan melalui fungsi sendto().
 3. Jika sebuah frame sampai pada receiver, maka receiver akan membalas dengan mengirimkan ACK[<next-frame>], kecuali terdapat kegagalan pada frame sebelumnya. Jika terjadi kegagalan, ACK yang dikirim tetap ACK[<next-frame>] dari frame yang terakhir berhasil diterima.
-4. Pengiriman selanjutnya oleh pihak sender dilakukan sebanyak SWS byte lagi yang dimulai dari ACK yang diterima.
-5. Jika kegagalan terjadi pada sebuah pengiriman (timeout atau packet loss), maka pengiriman tersebut akan diulangi kembali berdasarkan ACK terakhir yang sudah diterima sebelum pengiriman tersebut pada sisi sender. Dengan demikian, sender akan mengirimkan kembali paket/frame sebanyak SWS byte yang sesuai dengan sequence ACK-nya.
+4. Ketika receiver buffer penuh, receiver buffer akan dikosongkan dengan mengoutputnya ke file eksternal.
+5. Pengiriman selanjutnya oleh pihak sender dilakukan sebanyak SWS byte lagi yang dimulai dari ACK yang diterima.
+6. Jika kegagalan terjadi pada sebuah pengiriman (timeout atau packet loss), maka pengiriman tersebut akan diulangi kembali berdasarkan ACK terakhir yang sudah diterima sebelum pengiriman tersebut pada sisi sender. Dengan demikian, sender akan mengirimkan kembali paket/frame sebanyak SWS byte yang sesuai dengan sequence ACK-nya.
 
 ### Pembagian Tugas
  
@@ -68,7 +69,7 @@ Advertised window size tidak boleh bernilai 0 karena ketika sender menerima ACK[
 | Data offset | 4 bit | Menyatakan offset data yang merupakan pembagian ukuran paket dengan 4 byte |
 | Reserved byte | 3 bit | Hanya bertujuan untuk alignment agar data kelipatan 4 bit |
 | Control flags | 9 bit | Menyatakan flag-flag tertentu seperti SYN (untuk melakukan koneksi), ACK (mengakui penerimaan data), dan sebagainya |
-| WIndow size | 2 byte | Menyatakan banyaknya data yang dikirim oleh sender kepada receiver sebelum sender menerima ACK dari receiver |
+| Window size | 2 byte | Menyatakan banyaknya data yang dikirim oleh sender kepada receiver sebelum sender menerima ACK dari receiver |
 | Checksum | 2 byte | Menyatakan sebuah nilai checksum yang berguna untuk pendeteksian error pada paket/message yang dikirim |
 | Urgent pointer | 2 byte | Seringkali diabaikan dan diisi dengan bit-bit 0 |
 | Optional data | 0 - 40 byte | Tidak harus digunakan, dapat berisi ACK khusus atau algoritma window scaling |
