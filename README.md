@@ -54,12 +54,10 @@ Program receiver dijalankan dengan cara memasukkan 4 buah argumen tambahan, yait
 
 ### Pertanyaan dan Jawaban
 
-Apa yang terjadi jika advertised window yang dikirim bernilai 0? Apa cara untuk menangani hal tersebut?
+1. **Apa yang terjadi jika advertised window yang dikirim bernilai 0? Apa cara untuk menangani hal tersebut?** <br />
+Advertised window size tidak boleh bernilai 0 karena ketika sender menerima ACK[] dengan advertised window bernilai 0, ukuran SWS akan diubah menjadi 0, sehingga sender tidak akan mengirimkan paket lagi. Untuk menanganinya, dapat dibuat minimal advertised window menjadi 1 atau sender yang membaca advertised window 0 sebagai berukuran 1.
 
-Advertised window dari sebuah sender atau receiver tidak boleh bernilai 0. Ini karena jika nilainya 0, berarti sebuah sender tidak dapat mengirimkan apapun, karena window sizenya berukuran 0. Selain itu, jika receivernya yang memiliki advertised window sebesar 0, berarti receiver tidak dapat menerima apapun dari sender karena window size-nya 0.
-
-Sebutkan field data yang terdapat TCP Header serta ukurannya, ilustrasikan, dan jelaskan kegunaan dari masing-masing field data tersebut!
-
+2. **Sebutkan field data yang terdapat TCP Header serta ukurannya, ilustrasikan, dan jelaskan kegunaan dari masing-masing field data tersebut!**<br />
 | Field Data | Ukuran | Kegunaan |
 |---------------|-----------------|-----------------|
 | Source TCP port | 2 byte | Menyatakan port asal paket dikirim |
