@@ -11,6 +11,7 @@ Untuk menjalankan program, diperlukan 2 buah window terminal. Window yang pertam
 #### Program sender
 
 Program sender dijalankan dengan cara memasukkan 5 buah argumen tambahan, yaitu dengan perintah:
+
 ...
 ./sendfile <filename> <windowsize> <buffersize> <destination_ip> <destination_port>
 ...
@@ -26,6 +27,7 @@ Program sender dijalankan dengan cara memasukkan 5 buah argumen tambahan, yaitu 
 #### Program receiver
 
 Program receiver dijalankan dengan cara memasukkan 4 buah argumen tambahan, yaitu dengan memasukkan perintah:
+
 ...
 ./recvfile <filename> <windowsize> <buffersize> <port>
 ...
