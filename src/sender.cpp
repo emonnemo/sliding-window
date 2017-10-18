@@ -16,6 +16,7 @@
 #include <fstream>
 #include <thread>
 #include <iomanip>
+#include "time_util.hpp"
 #include "ios_flag_saver.hpp"
 
 
@@ -196,6 +197,7 @@ void send_file(string filename) {
 		<< ":" << destination_port << endl;
 	cout << "Trying to send file \"" << filename << "\" to " << destination_ip
 		<< ":" << destination_port << endl;
+	string ip = "127.0.0.1";
 	char ch;
 	bool flag = true;
 	bool stop = false;
@@ -257,6 +259,7 @@ void send_file(string filename) {
 							if (min_window % buffer_size == i) {
 								finish_sent = send_buffer[(max_window - 1) % buffer_size] == EOF;
 								if (sendto(receiver_sock, fr, 9, 0, (sockaddr*)&receiver_addr, sizeof(receiver_addr))) {
+									log << get_header(string(ip)) << " " ;
 									log << "Send data from buffer with index " << i << " with data = ";
 									print_hex(fr[6]);
 									log << "(sequence number = " << sequence_number;
@@ -268,6 +271,7 @@ void send_file(string filename) {
 						}
 					} else {
 						if (sendto(receiver_sock, fr, 9, 0, (sockaddr*)&receiver_addr, sizeof(receiver_addr))) {
+							log << get_header(string(ip)) << " " ;
 							log << "Send data from buffer with index " << i << " with data = ";
 							print_hex(fr[6]);
 							log << "(sequence number = " << sequence_number;
@@ -289,6 +293,7 @@ void send_file(string filename) {
 						number_ack_received++;
 						if (strlen(data) > 0) {
 							if (check_checksum(data[6])) {
+								log << get_header(string(ip)) << " " ;
 								log << "Got ACK " << get_sequence_number() << endl;
 								accepted_once = true;
 								// cout << get_sequence_number() << " - " << next_sequence_number << endl;
@@ -298,6 +303,7 @@ void send_file(string filename) {
 								last_sequence_received = next_sequence_number - 1;
 								if (!check_buffer) break;
 							} else {
+								log << get_header(string(ip)) << " " ;
 								log << "Got ACK with wrong checksum" << endl;
 							}
 						} else {
@@ -305,6 +311,7 @@ void send_file(string filename) {
 						}
 					} else {
 						if (finish_sent) {
+							log << get_header(string(ip)) << " " ;
 							log << "File \"" << filename << "\" fully sent to "
 								<< destination_ip << ":" << destination_port
 								<< " but didn't receive last ACK" << endl;
@@ -337,6 +344,7 @@ void send_file(string filename) {
 					}
 					// cout << "buffer_size :" << buffer_size << ", buffer_index :" << buffer_index << endl;
 					if (!flag && (last_sequence_received + 1 - buffer_index) % buffer_size == 0) {
+						log << get_header(string(ip)) << " " ;
 						log << "File \"" << filename << "\" successfully sent to "
 							<< destination_ip << ":" << destination_port << endl;
 						cout << "File \"" << filename << "\" successfully sent to "

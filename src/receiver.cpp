@@ -12,6 +12,7 @@
 #include <iostream>
 #include <fstream>
 #include <iomanip>
+#include "time_util.hpp"
 #include "ios_flag_saver.hpp"
 
 using namespace std;
@@ -157,6 +158,7 @@ int main(int argc, char** argv)
 			for (int i = 0; i < buffer_index; i++) {
 				file << receive_buffer[i];
 			}
+			log << get_header(string(ip)) << " ";
 			log << "File \"" << filename << "\" successfully received" << endl;
 			cout << "File \"" << filename << "\" successfully received" << endl;
 			close(sock);
@@ -182,6 +184,7 @@ int main(int argc, char** argv)
 							buffer_index = 0;
 						}
 						largest_frame++;
+						log << get_header(string(ip)) << " ";
 						log << "Frame " << i << " with data -";
 						print_hex(receive[6]);
 						log	<< "- received";
@@ -189,18 +192,21 @@ int main(int argc, char** argv)
 					} else { // get not the next expected frame
 						if (sequence_number <= largest_frame) {
 							if (sequence_number <= last_frame_received) {
+								log << get_header(string(ip)) << " ";
 								log << "Frame " << i << " with data -";
 								print_hex(receive[6]);
 								log	<< "- rejected";
 								// printf("Frame %d data -%c- rejected",i,receive[6]);
 							} else if (sequence_number - last_frame_received + buffer_index < buffer_size) {
 								receive_buffer[sequence_number - last_frame_received + buffer_index] = receive[6];
+								log << get_header(string(ip)) << " ";
 								log << "Frame " << i << " with data -";
 								print_hex(receive[6]);
 								log	<< "- received";
 								// printf("Frame %d data -%c- received",i,receive[6]);
 							}
 						} else {
+							log << get_header(string(ip)) << " ";
 							log << "Frame " << i << " with data -";
 							print_hex(receive[6]);
 							log	<< "- rejected";
@@ -211,11 +217,13 @@ int main(int argc, char** argv)
 					char advertised_window_size = min(window_size, buffer_size - buffer_index);
 					serialize_ack(next_sequence_number, advertised_window_size);
 					sendto(sock, ack, 7, 0, (sockaddr*)&sender_addr, sizeof(sender_addr));
+					log << get_header(string(ip)) << " ";
 					log << "Sent ACK with next expected sequence number = " << next_sequence_number
 						<< endl;
 				} else { // wrong checksum, error in sending
 					// printf("Frame %d data -%c- wrong checksum\n",i,receive[6]);
 					uint32_t sequence_number = get_sequence_number();
+					log << get_header(string(ip)) << " ";
 					log << "Frame " << i << " with data -";
 					print_hex(receive[6]);
 					log	<< "- rejected";
@@ -224,6 +232,7 @@ int main(int argc, char** argv)
 					char advertised_window_size = min(window_size, buffer_size - buffer_index);
 					serialize_ack(last_frame_received + 1, advertised_window_size);
 					sendto(sock, ack, 7, 0, (sockaddr*)&sender_addr, sizeof(sender_addr));
+					log << get_header(string(ip)) << " ";
 					log << "Sent ACK with next expected sequence number = " << next_sequence_number
 						<< endl;
 				}
