@@ -58,6 +58,7 @@ Program receiver dijalankan dengan cara memasukkan 4 buah argumen tambahan, yait
 Advertised window size tidak boleh bernilai 0 karena ketika sender menerima ACK[] dengan advertised window bernilai 0, ukuran SWS akan diubah menjadi 0, sehingga sender tidak akan mengirimkan paket lagi. Untuk menanganinya, dapat dibuat minimal advertised window menjadi 1 atau sender yang membaca advertised window 0 sebagai berukuran 1.
 
 2. **Sebutkan field data yang terdapat TCP Header serta ukurannya, ilustrasikan, dan jelaskan kegunaan dari masing-masing field data tersebut!**<br />
+
 | Field Data | Ukuran | Kegunaan |
 |---------------|-----------------|-----------------|
 | Source TCP port | 2 byte | Menyatakan port asal paket dikirim |
