@@ -95,6 +95,8 @@ int main(int argc, char** argv)
 		cout << "Error at argument number " << argNumber << endl;
 	}
 
+	buffer_size = 256; // specs
+
 	host = gethostbyname("0.0.0.0");
 	if ((sock = socket(AF_INET, SOCK_DGRAM, INADDR_ANY)) == -1) {
 		perror("Socket not created");

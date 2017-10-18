@@ -150,6 +150,7 @@ void send_file(string filename) {
 	// 	perror("setsockopt error");
 	// 	exit(1);
 	// }
+	buffer_size = 256; // specs
 	int sender_port = 1026;
 	string sender_ip = "127.0.0.1";
 	sockaddr_in receiver_addr, sender_addr;
