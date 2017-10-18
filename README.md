@@ -12,9 +12,9 @@ Untuk menjalankan program, diperlukan 2 buah window terminal. Window yang pertam
 
 Program sender dijalankan dengan cara memasukkan 5 buah argumen tambahan, yaitu dengan perintah:
 
-...
+```
 ./sendfile <filename> <windowsize> <buffersize> <destination_ip> <destination_port>
-...
+```
 
 | Argumen | Keterangan |
 |--------------|-----------------|
@@ -28,9 +28,9 @@ Program sender dijalankan dengan cara memasukkan 5 buah argumen tambahan, yaitu 
 
 Program receiver dijalankan dengan cara memasukkan 4 buah argumen tambahan, yaitu dengan memasukkan perintah:
 
-...
+```
 ./recvfile <filename> <windowsize> <buffersize> <port>
-...
+```
 
 | Argumen | Keterangan |
 |--------------|-----------------|
