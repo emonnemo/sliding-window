@@ -128,7 +128,7 @@ int main(int argc, char** argv)
 		exit(1);
 	}
 	// opening log file
-	log.open("log/rcv_log.log", std::fstream::out | std::fstream::app);
+	log.open("rcv_log.log", std::fstream::out | std::fstream::app);
 	if (log.is_open()) {
 		cout << "Log file opened successfully" << endl;
 	} else {

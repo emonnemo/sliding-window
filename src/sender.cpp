@@ -184,7 +184,7 @@ void send_file(string filename) {
 		exit(1);
 	}
 	// opening log file
-	log.open("log/send_log.log", std::fstream::out | std::fstream::app);
+	log.open("send_log.log", std::fstream::out | std::fstream::app);
 	if (log.is_open()) {
 		cout << "Log file opened successfully" << endl;
 	} else {
