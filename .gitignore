@@ -55,8 +55,5 @@ dkms.conf
 recvfile
 sendfile
 
-# test file to send
-*.txt
-
 # log folder
 /log
